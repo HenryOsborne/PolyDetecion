@@ -36,9 +36,9 @@ class Convolutional(nn.Module):
 
         return x
 
+
 class Residual_block(nn.Module):
     def __init__(self, filters_in, filters_out, filters_medium):
-
         super(Residual_block, self).__init__()
         self.__conv1 = Convolutional(filters_in=filters_in, filters_out=filters_medium, kernel_size=1, stride=1, pad=0,
                                      norm="bn", activate="leaky")
@@ -51,6 +51,7 @@ class Residual_block(nn.Module):
         out = x + r
 
         return out
+
 
 class Darknet53(nn.Module):
 
@@ -96,7 +97,6 @@ class Darknet53(nn.Module):
         self.__rb_5_4_1 = Residual_block(filters_in=1024, filters_out=1024, filters_medium=512)
         self.__rb_5_4_2 = Residual_block(filters_in=1024, filters_out=1024, filters_medium=512)
         self.__rb_5_4_3 = Residual_block(filters_in=1024, filters_out=1024, filters_medium=512)
-
 
     def forward(self, x):
         x = self.__conv(x)

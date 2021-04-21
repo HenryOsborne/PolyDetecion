@@ -1,6 +1,6 @@
 import torch
 
-a= torch.randn((3,1))
+a = torch.randn((3, 1))
 print(a)
-a= a.squeeze(-1)
+a = a.squeeze(-1)
 print(a)
