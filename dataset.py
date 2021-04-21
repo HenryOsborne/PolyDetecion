@@ -43,7 +43,7 @@ class dataloader(object):
             while annotation_count < self.bacth_size:  # 已处理的annotation数量小于batch size
                 index = self.iter * self.bacth_size + annotation_count  # 计算annotation的index
                 index = index if (index < self.num_annotations) else (
-                            index - self.num_annotations)  # 如果index大于样本量,则从样本第一个开始继续取
+                        index - self.num_annotations)  # 如果index大于样本量,则从样本第一个开始继续取
 
                 image_and_labels = self.annotations[index]  # 取image name和labels
                 image = self.get_image_array(image_and_labels[0])  # image -> np.array

@@ -8,9 +8,9 @@ from easydict import EasyDict
 cfg = EasyDict()
 
 # custom
-cfg.annotations_path = "/home/hxy/桌面/dataset/ucas/annotation.txt"  # 标签的path
-cfg.class_path = "/home/hxy/桌面/dataset/ucas/data.names"  # 类别名文件
-cfg.image_path = "/home/hxy/桌面/dataset/ucas/images/"  # 存放图像的path
+cfg.annotations_path = "data/annotations/annotations.txt"  # 标签的path
+cfg.class_path = "data/data.names"  # 类别名文件
+cfg.image_path = "data/images/"  # 存放图像的path
 cfg.mean_and_val = "./data/mean_and_val.txt"  # 数据集均值和方差
 cfg.tensorboard_path = "./log/"  # 存放tensorboard的log输出
 cfg.checkpoint_save_path = "./checkpoint/"  # 存放训练参数
