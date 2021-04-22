@@ -7,6 +7,7 @@
 import torch
 from config.yolov3 import cfg
 
+
 def transform(output):
     num_classes = cfg.num_classes
     batch_size, _, output_size, _ = output.shape
@@ -16,8 +17,8 @@ def transform(output):
 
     return output
 
-def build_decode(output):
 
+def build_decode(output):
     anchors = torch.FloatTensor(cfg.anchors)
     strides = torch.FloatTensor(cfg.strides)
     small_pred = decode(output[0], strides[0], anchors[0])
@@ -30,7 +31,7 @@ def build_decode(output):
 
 def decode(output,stride,anchors):
     batch_size, _, output_size = output.shape[0:3]
-    output = output.view(1, 3, 10, output_size, output_size).permute(0, 1, 3, 4, 2).contiguous()
+    output = output.view(batch_size, 3, _ // 3, output_size, output_size).permute(0, 1, 3, 4, 2).contiguous()
     grid_x = torch.arange(output_size).repeat(output_size, 1).view([1, 1, output_size, output_size]).float().cuda()
     grid_y = torch.arange(output_size).repeat(output_size, 1).t().view([1, 1, output_size, output_size]).float().cuda()
     P1_x = output[..., 0]  # Point1 x

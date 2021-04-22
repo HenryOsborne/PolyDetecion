@@ -21,7 +21,7 @@ parser.add_argument('-image_folder', type=str, default='./data/test', help='path
 # parser.add_argument('-image_folder', type=str, default='/py/YOLOv3-quadrangle/data/samples', help='path to images')
 parser.add_argument('-output_folder', type=str, default='result', help='path to outputs')
 parser.add_argument('-plot_flag', type=bool, default=True)
-parser.add_argument('-txt_out', type=bool, default=False)
+parser.add_argument('-txt_out', type=bool, default=True)
 
 parser.add_argument('-cfg', type=str, default='cfg/yolov3.cfg', help='cfg file path')
 parser.add_argument('-weights_path', type=str, default='checkpoint/20.pt', help='weight file path')
@@ -111,6 +111,7 @@ def plot_one_box(x, img, color=None, label=None, line_thickness=None):  # Plots 
     cv2.line(img, (int(x[2]), int(x[3])), (int(x[4]), int(x[5])), color, tl)
     cv2.line(img, (int(x[4]), int(x[5])), (int(x[6]), int(x[7])), color, tl)
     cv2.line(img, (int(x[6]), int(x[7])), (int(x[0]), int(x[1])), color, tl)
+    cv2.putText(img, label, (int(x[0]), int(x[1])), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 1)
 
 
 def bbox_iou_nms(box1, box2):
@@ -284,7 +285,7 @@ def detect(opt):
                     # Add the bbox to the plot
                     label = '%s %.2f' % (classes[int(cls_pred)], conf)
                     color = bbox_colors[int(np.where(unique_classes == int(cls_pred))[0])]
-                    plot_one_box([P1_x, P1_y, P2_x, P2_y, P3_x, P3_y, P4_x, P4_y], img, label=None, color=color)
+                    plot_one_box([P1_x, P1_y, P2_x, P2_y, P3_x, P3_y, P4_x, P4_y], img, label=label, color=color)
             '''
             if opt.plot_flag:
                 cv2.imshow(path.split('/')[-1], img)

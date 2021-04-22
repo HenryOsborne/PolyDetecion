@@ -74,8 +74,8 @@ def Smooth_L1_loss(input, targrt):
 
 def loss_layer(output, target, stride, anchors):
     '''
-    :param output: yolo output(n,grid size,grid size,num anchors,5+num classes)
-    :param pred: yolo output before decode(n,grid size,grid size,num anchors,5+num classes)
+    :param output: yolo output(n,grid size,grid size,num anchors,9+num classes)
+    :param pred: yolo output before decode(n,grid size,grid size,num anchors,9+num classes)
     :param label_mask: shape same as output and pred
     :param label_xywh: (max num of boxes every scale,(x,y,w,h))
     :param stride: input size//putput size
@@ -89,7 +89,7 @@ def loss_layer(output, target, stride, anchors):
     anchors = anchors.to(device)
 
     output = output.view(batch_size, num_anchors, cfg.num_classes + 9, output_size, output_size)
-    output = output.permute(0, 1, 3, 4, 2).contiguous()  # (batch size,3*(5+num classes),output size,output size)
+    output = output.permute(0, 1, 3, 4, 2).contiguous()  # (batch size,3,output size,output size,9+num classes)
 
     output_xy = output[..., 0:8]
     output_conf = output[..., 8]

@@ -9,6 +9,7 @@ from config.yolov3 import cfg
 import torch
 import random
 import cv2
+import copy
 
 
 class dataloader(object):
@@ -53,8 +54,9 @@ class dataloader(object):
                 image, bboxes = self.resize_image(image, bboxes, input_size)  # resize到随机随机选取的图像大小
                 # bboxes[...,1:9] = bboxes[...,1:9]/input_size
                 tmp = bboxes[..., 0:8]
+                tmp_cls = copy.deepcopy(bboxes[..., 8])
                 bboxes[..., 1:9] = tmp / input_size
-                bboxes[..., 0] = 0
+                bboxes[..., 0] = tmp_cls
                 if self.if_show:
                     self.show_image_and_bboxes(np.copy(image), np.copy(bboxes[..., 1:9] * input_size))  # 可视化查看数据增强的正确性
                 image = self.normalization(image)  # 归一化以加快收敛速度
