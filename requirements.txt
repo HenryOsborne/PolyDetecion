@@ -1,0 +1,5 @@
+shapely
+torch
+numpy
+easydict
+cv2

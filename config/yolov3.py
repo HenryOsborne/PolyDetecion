@@ -9,6 +9,9 @@ cfg = EasyDict()
 
 # custom
 cfg.annotations_path = "data/annotations.txt"  # 标签的path
+cfg.trainval_index = 'data/trainval.txt'
+cfg.test_index = 'data/test.txt'
+cfg.ground_truth_path = 'data/ground-truth'
 cfg.class_path = "data/data.names"  # 类别名文件
 cfg.image_path = "data/images/"  # 存放图像的path
 cfg.mean_and_val = "./data/mean_and_val.txt"  # 数据集均值和方差
@@ -17,6 +20,7 @@ cfg.checkpoint_save_path = "./checkpoint/"  # 存放训练参数
 cfg.num_classes = 2  # 有多少类
 cfg.strides = [8, 16, 32]  # 输入与三个分支的大小比例
 cfg.device = "cuda"  # cpu
+cfg.num_worker = 0
 cfg.anchors = [[[1.25, 1.625], [2.0, 3.75], [4.125, 2.875]],
                [[1.875, 3.8125], [3.875, 2.8125], [3.6875, 7.4375]],
                [[3.625, 2.8125], [4.875, 6.1875], [11.65625, 10.1875]]]

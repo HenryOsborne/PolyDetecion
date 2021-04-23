@@ -12,7 +12,7 @@ def transform(output):
     num_classes = cfg.num_classes
     batch_size, _, output_size, _ = output.shape
     num_anchors = len(cfg.anchors[0])
-    output = output.permute(0, 2, 3, 1).contiguous()  # (batch size,3*(5+num classes),output size,output size)
+    output = output.permute(0, 2, 3, 1).contiguous()  # (batch size,3*(9+num classes),output size,output size)
     output = output.view(batch_size, output_size, output_size, num_anchors, num_classes + 9)
 
     return output

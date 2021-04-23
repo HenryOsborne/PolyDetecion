@@ -15,15 +15,25 @@ from dataset import dataloader
 from utils.loss import build_loss
 from utils.scheduler import adjust_lr_by_wave
 
+from load_data import NewDataset
+from torch.utils.data import DataLoader
+
 
 class trainer(object):
     def __init__(self):
         self.device = torch.device(cfg.device)
         self.max_epoch = cfg.max_epoch
-        self.train_dataloader = dataloader()
-        self.len_train_dataset = self.train_dataloader.num_annotations
+
+        self.train_dataset = NewDataset(train_set=True)
+        self.train_dataloader = DataLoader(self.train_dataset, batch_size=cfg.batch_size, shuffle=True,
+                                           num_workers=cfg.num_worker,
+                                           collate_fn=self.train_dataset.collate_fn)
+
+        self.len_train_dataset = len(self.train_dataset.annotation_txt)
+
         self.model = yolov3().to(self.device)
         self.model.load_darknet_weights("./checkpoint/darknet53_448.weights")
+
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr=cfg.lr_start, momentum=cfg.momentum,
                                          weight_decay=cfg.weight_decay)
         self.scheduler = adjust_lr_by_wave(self.optimizer, self.max_epoch * self.len_train_dataset, cfg.lr_start,
@@ -48,13 +58,10 @@ class trainer(object):
         self.writer.add_scalar("learning rate", self.optimizer.param_groups[0]['lr'], global_step=step)
 
     def train(self):
-        # for epoch_index in range(self.max_epoch):
-        epoch_index = 0
-        while (True):
-            self.iter = 0
+        for epoch_index in range(self.max_epoch):
             mean_loss = [0, 0, 0, 0]
             self.model.train()
-            for train_data in self.train_dataloader:
+            for self.iter, train_data in enumerate(self.train_dataloader):
                 start_time = time.time()
                 self.scheduler.step(epoch_index,
                                     self.len_train_dataset * epoch_index + self.iter / cfg.batch_size)  # 调整学习率
@@ -79,16 +86,12 @@ class trainer(object):
                 loss_items = [loss.item(), loss_giou.item(), loss_conf.item(), loss_cls.item()]
                 mean_loss = [(mean_loss[i] * self.iter + loss_items[i]) / (self.iter + 1) for i in range(4)]
                 self.put_log(epoch_index, mean_loss, time_per_iter)
-                self.iter += 1
 
             if (epoch_index + 1) % cfg.save_step == 0:
                 checkpoint = {'epoch': epoch_index,
                               'model': self.model.state_dict(),
                               'optimizer': self.optimizer.state_dict()}
-                torch.save(self.model.state_dict(), cfg.checkpoint_save_path + str(epoch_index + 1) + '.pt')
-                # torch.save(self.model.state_dict(), cfg.checkpoint_save_path + 'last.pt')
-
-            epoch_index += 1
+                torch.save(self.model.state_dict(), cfg.checkpoint_save_path + str(epoch_index + 1) + '.pth')
 
 
 if __name__ == '__main__':
