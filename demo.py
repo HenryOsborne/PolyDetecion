@@ -24,9 +24,9 @@ parser.add_argument('-plot_flag', type=bool, default=True)
 parser.add_argument('-txt_out', type=bool, default=True)
 
 parser.add_argument('-cfg', type=str, default='cfg/yolov3.cfg', help='cfg file path')
-parser.add_argument('-weights_path', type=str, default='checkpoint/20.pt', help='weight file path')
+parser.add_argument('-weights_path', type=str, default='checkpoint/180.pt', help='weight file path')
 parser.add_argument('-class_path', type=str, default='data/data.names', help='path to class label file')
-parser.add_argument('-conf_thres', type=float, default=0.1, help='object confidence threshold')
+parser.add_argument('-conf_thres', type=float, default=0.5, help='object confidence threshold')
 parser.add_argument('-nms_thres', type=float, default=0.2, help='iou threshold for non-maximum suppression')
 parser.add_argument('-batch_size', type=int, default=1, help='size of the batches')
 parser.add_argument('-img_size', type=int, default=608, help='size of each image dimension')
@@ -103,9 +103,6 @@ def load_classes(path):
 def plot_one_box(x, img, color=None, label=None, line_thickness=None):  # Plots one bounding box on image img
     tl = line_thickness or round(0.001 * max(img.shape[0:2])) + 1  # line thickness
     color = color or [random.randint(0, 255) for _ in range(3)]
-
-    # c1, c2 = (int(x[0]), int(x[1])), (int(x[2]), int(x[3]))
-    # cv2.rectangle(img, c1, c2, color, thickness=tl)
 
     cv2.line(img, (int(x[0]), int(x[1])), (int(x[2]), int(x[3])), color, tl)
     cv2.line(img, (int(x[2]), int(x[3])), (int(x[4]), int(x[5])), color, tl)

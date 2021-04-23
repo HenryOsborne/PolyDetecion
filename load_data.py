@@ -131,12 +131,13 @@ class NewDataset(Dataset):
         image = [i[0] for i in batch]
         bboxes = [i[1] for i in batch]
         label = [i[2] for i in batch]
+        assert len(image) == len(bboxes) == len(label)
 
         input_size = random.choice(self.input_sizes)  # 每次随机选取输入图像的大小
         self.output_size = [input_size // stride for stride in self.strides]  # yolo输出大小
 
         logit = []
-        for i in range(self.bacth_size):
+        for i in range(len(image)):
             # image[i], bboxes[i] = self.data_augmentation(image[i],bboxes[i])
             image[i], bboxes[i] = self.resize_image(image[i], bboxes[i], input_size)
             if self.if_show:  # 可视化查看数据增强的正确性
@@ -157,7 +158,7 @@ if __name__ == '__main__':
     mydataset = NewDataset()
     from torch.utils.data import DataLoader
 
-    train_data_loader = DataLoader(mydataset, batch_size=4, shuffle=True, num_workers=0,
+    train_data_loader = DataLoader(mydataset, batch_size=cfg.batch_size, shuffle=True, num_workers=cfg.num_worker,
                                    collate_fn=mydataset.collate_fn)
 
     for epoch, data in enumerate(train_data_loader):
