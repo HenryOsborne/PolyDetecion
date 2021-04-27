@@ -48,6 +48,9 @@ class NewDataset(Dataset):
         label = [self.class_index[i[0]] for i in lines]
         label = torch.unsqueeze(torch.tensor(label), 1)  # (num_instance,)->(num_instance,1)
 
+        if self.if_show:  # 可视化查看数据增强的正确性
+            self.show_image_and_bboxes(np.copy(image), np.copy(bboxes))
+
         return image, bboxes, label
 
     def get_class_names(self):
@@ -140,8 +143,6 @@ class NewDataset(Dataset):
         for i in range(len(image)):
             # image[i], bboxes[i] = self.data_augmentation(image[i],bboxes[i])
             image[i], bboxes[i] = self.resize_image(image[i], bboxes[i], input_size)
-            if self.if_show:  # 可视化查看数据增强的正确性
-                self.show_image_and_bboxes(np.copy(image[i]), np.copy(bboxes[i]))
             image[i] = self.normalization(image[i])
             image[i] = torch.from_numpy(image[i])
             image[i] = image[i].permute(2, 0, 1)

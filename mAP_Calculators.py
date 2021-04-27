@@ -13,7 +13,7 @@ from shapely.geometry import Polygon
 MINOVERLAP = 0.5  # default value (defined in the PASCAL VOC2012 challenge)
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-na', '--no-animation', help="no animation is shown.", action="store_true")
+parser.add_argument('-na', '--no-animation', help="no animation is shown.", action="store_true", default=True)
 parser.add_argument('-np', '--no-plot', help="no plot is shown.", action="store_true")
 parser.add_argument('-q', '--quiet', help="minimalistic console output.", action="store_true")
 # argparse receiving list of classes to be ignored (e.g., python mAP_Calculators.py --ignore person book)
@@ -45,7 +45,7 @@ if args.set_class_iou is not None:
 # make sure that the cwd() is the location of the python script (so that every path makes sense)
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-GT_PATH = os.path.join(os.getcwd(), 'data', 'ground-truth')
+GT_PATH = os.path.join(os.getcwd(), 'data', 'test_gt')
 DR_PATH = os.path.join(os.getcwd(), 'result')
 # if there are no images then no animation can be shown
 IMG_PATH = os.path.join(os.getcwd(), 'data', 'test')
@@ -689,6 +689,7 @@ with open(output_files_path + "/output.txt", 'w') as output_file:
                 # save the image with all the objects drawn to it
                 cv2.imwrite(img_cumulative_path, img_cumulative)
 
+        # TODO:intergreate this code to my script
         # print(tp)
         # compute precision/recall
         cumsum = 0
