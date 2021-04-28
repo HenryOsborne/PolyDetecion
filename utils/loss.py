@@ -99,12 +99,13 @@ def loss_layer(output, target, stride, anchors):
         build_targets(target, anchors, num_anchors, cfg.num_classes, output_size)
     tcls = tcls[mask]
     t1_x, t1_y, t2_x, t2_y, t3_x, t3_y, t4_x, t4_y, mask, tcls = \
-        t1_x.cuda(), t1_y.cuda(), t2_x.cuda(), t2_y.cuda(), t3_x.cuda(), t3_y.cuda(), t4_x.cuda(), t4_y.cuda(), mask.cuda(), tcls.cuda()
-    nM = mask.sum().float()  # Number of anchors (assigned to targets)
+        t1_x.to(device), t1_y.to(device), t2_x.to(device), t2_y.to(device), t3_x.to(device), t3_y.to(device), t4_x.to(
+            device), t4_y.to(device), mask.to(device), tcls.to(device)
+    num_pred = mask.sum().float()  # Number of anchors (assigned to targets)
 
-    k = nM / batch_size
+    k = num_pred / batch_size
 
-    if nM > 0:
+    if num_pred > 0:
         lx1 = (k) * Smooth_L1_loss(output_xy[..., 0][mask], t1_x[mask]) / 8
         ly1 = (k) * Smooth_L1_loss(output_xy[..., 1][mask], t1_y[mask]) / 8
         lx2 = (k) * Smooth_L1_loss(output_xy[..., 2][mask], t2_x[mask]) / 8

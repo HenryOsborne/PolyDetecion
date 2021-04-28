@@ -10,6 +10,7 @@ from config.yolov3 import cfg
 from utils.decode import build_decode
 from models.darknet53 import Darknet53, Convolutional
 import numpy as np
+import torch.nn.functional as F
 
 
 class convolution(nn.Module):

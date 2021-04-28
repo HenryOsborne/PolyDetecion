@@ -7,15 +7,16 @@
 import numpy as np
 from config.yolov3 import cfg
 
+
 class adjust_lr_by_wave(object):
-    def __init__(self,optimizer,iter_max,lr_start,lr_end=0.,warmup=0):
+    def __init__(self, optimizer, iter_max, lr_start, lr_end=0., warmup=0):
         self.optimizer = optimizer
         self.iter_max = iter_max
         self.lr_start = lr_start
         self.lr_end = lr_end
         self.warmup = warmup
 
-    def step(self,epoch,iter):
+    def step(self, epoch, iter):
         if (epoch == 0) & (iter <= cfg.warmup):
             lr = 5e-4 * (iter / cfg.warmup) ** 2
         else:
@@ -30,8 +31,9 @@ class adjust_lr_by_wave(object):
         for g in self.optimizer.param_groups:
             g['lr'] = lr
 
+
 class adjust_lr_by_loss(object):
-    def __init__(self,optimizer,lr_start,warmup,iters_every_epoch):
+    def __init__(self, optimizer, lr_start, warmup, iters_every_epoch):
         self.optimizer = optimizer
         self.lr_start = lr_start
         self.warmup = warmup
@@ -39,10 +41,10 @@ class adjust_lr_by_loss(object):
         self.original_loss = []
         self.lr_divide = lr_start
 
-    def step(self,iter,loss):
+    def step(self, iter, loss):
 
-        if (iter % self.iters_every_epoch)==0:
-            if len(self.original_loss)<10:
+        if (iter % self.iters_every_epoch) == 0:
+            if len(self.original_loss) < 10:
                 self.original_loss.append(loss)
             else:
                 self.original_loss.pop(0)
@@ -54,8 +56,8 @@ class adjust_lr_by_loss(object):
         lr = 0
         if iter < self.warmup and self.warmup:
             lr = self.lr_start / self.warmup * iter
-        elif len(self.original_loss)==10:
-                lr = self.lr_divide
+        elif len(self.original_loss) == 10:
+            lr = self.lr_divide
         else:
             lr = self.lr_start
         for param_group in self.optimizer.param_groups:
