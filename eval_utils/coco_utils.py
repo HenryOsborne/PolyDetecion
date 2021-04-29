@@ -343,7 +343,15 @@ def evaluate(self):
 
 
 def create_coco_dataset(dataset):
-    pass
+    coco_ds = COCO()
+    anno = dataset.annotation_json
+    coco_ds.dataset = anno
+    coco_ds.createIndex()
+    return coco_ds
+
+
+def reorginalize_target(pred, target):
+    return pred, target
 #################################################################
 # end of straight copy from pycocotools, just removing the prints
 #################################################################

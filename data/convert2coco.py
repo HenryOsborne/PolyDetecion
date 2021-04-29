@@ -6,7 +6,7 @@ import cv2
 txt_path = 'ground-truth'
 images_path = 'images'
 
-mode = 'trainval'
+mode = 'test'
 if mode == 'trainval':
     tarinval_txt = 'trainval.txt'
 elif mode == 'test':
