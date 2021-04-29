@@ -5,14 +5,17 @@ import torch
 import os
 import glob
 import cv2
+import json
 import random
 
 
 class NewDataset(Dataset):
     def __init__(self, train_set=True):
+        if train_set is True:
+            self.annotation_json = json.load(open(cfg.trainval_json))
+        else:
+            self.annotation_json = json.load(open(cfg.test_json))
         self.image_path = cfg.image_path
-        self.class_path = cfg.class_path
-        self.gt_path = cfg.ground_truth_path
         self.class_names = self.get_class_names()
         self.num_classes = len(self.class_names)
         self.bacth_size = cfg.batch_size
@@ -22,31 +25,20 @@ class NewDataset(Dataset):
         self.strides = cfg.strides
         self.max_boxes_per_scale = cfg.max_boxes_per_scale
         self.if_show = False  # 是否可视化label读取效果
-        self.class_index = {self.class_names[i]: i for i in range(len(self.class_names))}
-
-        if train_set is True:
-            txt_index = cfg.trainval_index
-        else:
-            txt_index = cfg.test_index
-        with open(txt_index, 'r')as read:
-            self.annotation_txt = [os.path.join(self.gt_path, line.strip() + ".txt")
-                                   for line in read.readlines()]
+        # self.class_index = {self.class_names[i]: i for i in range(len(self.class_names))}
 
     def __len__(self):
-        return len(self.annotation_txt)
+        return len(self.annotation_json['images'])
 
     def __getitem__(self, idx):
-        txt_path = self.annotation_txt[idx]
-        f = open(txt_path, 'r')
-        lines = f.read().splitlines()
-        f.close()
+        anno_info = [i for i in self.annotation_json['annotations'] if i['image_id'] == idx]
+        image_info = [i for i in self.annotation_json['images'] if i['id'] == idx][0]
 
-        lines = [line.split(' ') for line in lines]
-        bboxes = self.get_bbox_array(lines)  # bboxes
-        image = self.get_image_array(os.path.basename(txt_path).split('.')[0])
-
-        label = [self.class_index[i[0]] for i in lines]
-        label = torch.unsqueeze(torch.tensor(label), 1)  # (num_instance,)->(num_instance,1)
+        # ndarray(num of instance,8)
+        bboxes = self.get_bbox(anno_info)
+        label = self.get_label(anno_info)
+        label = torch.unsqueeze(torch.tensor(label), 1)
+        image = self.get_image(image_info['file_name'])
 
         if self.if_show:  # 可视化查看数据增强的正确性
             self.show_image_and_bboxes(np.copy(image), np.copy(bboxes))
@@ -55,11 +47,28 @@ class NewDataset(Dataset):
 
     def get_class_names(self):
         class_names = []
-        with open(self.class_path) as class_file:
-            classes = class_file.readlines()
-            for class_name in classes:
-                class_names.append(class_name[:-1])
+        for cat in self.annotation_json['categories']:
+            class_names.append(cat['name'])
         return class_names
+
+    def get_label(self, anno_info):
+        label_array = []
+        for anno in anno_info:
+            label = anno['category_id']
+            label_array.append(label)
+        return np.array(label_array, dtype=np.int64)
+
+    def get_bbox(self, anno_info):
+        bboxes_array = []
+        for anno in anno_info:
+            coord = anno['segmentation'][0]
+            bboxes_array.append([int(float(x)) for x in coord])
+        return np.array(bboxes_array, dtype=np.float64)
+
+    def get_image(self, img_name):
+        image = np.array(cv2.imread(os.path.join(self.image_path, img_name)))
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB).astype(np.float32)  # BGR -> RGB
+        return image
 
     def get_bbox_array(self, list_bboxes):
         bboxes_array = []

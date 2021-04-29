@@ -28,7 +28,7 @@ class trainer(object):
                                            num_workers=cfg.num_worker,
                                            collate_fn=self.train_dataset.collate_fn)
 
-        self.len_train_dataset = len(self.train_dataset.annotation_txt)
+        self.len_train_dataset = len(self.train_dataset)
 
         self.model = yolov3().to(self.device)
         self.model.load_darknet_weights("./checkpoint/darknet53_448.weights")

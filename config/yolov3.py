@@ -8,11 +8,8 @@ from easydict import EasyDict
 cfg = EasyDict()
 
 # custom
-cfg.annotations_path = "data/annotations.txt"  # 标签的path
-cfg.trainval_index = 'data/trainval.txt'
-cfg.test_index = 'data/test.txt'
-cfg.ground_truth_path = 'data/ground-truth'
-cfg.class_path = "data/data.names"  # 类别名文件
+cfg.trainval_json = 'data/trainval.json'
+cfg.test_json = 'data/test.json'
 cfg.image_path = "data/images/"  # 存放图像的path
 cfg.mean_and_val = "./data/mean_and_val.txt"  # 数据集均值和方差
 cfg.tensorboard_path = "./log/"  # 存放tensorboard的log输出
