@@ -31,12 +31,12 @@ def build_decode(output):
 
 
 def decode(output, stride, anchors):
-    device = output.device.type
+    device = torch.device(cfg.device)
     batch_size, _, output_size = output.shape[0:3]
     output = output.view(batch_size, 3, _ // 3, output_size, output_size).permute(0, 1, 3, 4, 2).contiguous()
-    grid_x = torch.arange(output_size, device=torch.device(device)).repeat(output_size, 1).view(
+    grid_x = torch.arange(output_size, device=device).repeat(output_size, 1).view(
         [1, 1, output_size, output_size]).float()
-    grid_y = torch.arange(output_size, device=torch.device(device)).repeat(output_size, 1).t().view(
+    grid_y = torch.arange(output_size, device=device).repeat(output_size, 1).t().view(
         [1, 1, output_size, output_size]).float()
     P1_x = output[..., 0]  # Point1 x
     P1_y = output[..., 1]  # Point1 y
@@ -47,7 +47,7 @@ def decode(output, stride, anchors):
     P4_x = output[..., 6]  # Point4 x
     P4_y = output[..., 7]  # Point4 y
 
-    pred_boxes = torch.FloatTensor(batch_size, 3, output_size, output_size, 8, device=torch.device(device))
+    pred_boxes = torch.FloatTensor(batch_size, 3, output_size, output_size, 8).to(device)
     pred_conf = output[..., 8]  # Conf
     pred_cls = output[..., 9:]  # Class
     pred_boxes[..., 0] = P1_x + grid_x

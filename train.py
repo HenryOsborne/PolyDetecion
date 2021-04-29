@@ -11,7 +11,6 @@ from config.yolov3 import cfg
 import math
 import time
 from tensorboardX import SummaryWriter
-from dataset import dataloader
 from utils.loss import build_loss
 from utils.scheduler import adjust_lr_by_wave
 
