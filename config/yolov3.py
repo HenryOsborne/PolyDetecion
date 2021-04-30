@@ -42,6 +42,6 @@ cfg.focal_alpha = 0.5  # 计算conf loss的focal loss的alpha参数
 
 # test
 cfg.test_input_size = 416  # 输入大小
-cfg.conf_thresh = 0.3
+cfg.conf_thresh = 0.5
 cfg.cls_thresh = 0.5
 cfg.nms_thresh = 0.2

@@ -65,7 +65,7 @@ class trainer(object):
                 self.scheduler.step(epoch_index,
                                     self.len_train_dataset * epoch_index + self.iter / cfg.batch_size)  # 调整学习率
                 # self.scheduler.step(self.len_train_dataset * epoch_index + self.iter + 1,mean_loss[0])
-                image, target = train_data
+                image, target, _ = train_data
 
                 image = Variable(image).to(self.device)
                 # target = Variable(target).to(self.device)
@@ -91,6 +91,61 @@ class trainer(object):
                               'model': self.model.state_dict(),
                               'optimizer': self.optimizer.state_dict()}
                 torch.save(self.model.state_dict(), cfg.checkpoint_save_path + str(epoch_index + 1) + '.pth')
+
+    def eval(self):
+        n_threads = torch.get_num_threads()
+        # FIXME remove this and make paste_masks_in_image run on the GPU
+        torch.set_num_threads(n_threads)
+        cpu_device = torch.device("cpu")
+        self.model.eval()
+
+        coco = create_coco_dataset(self.train_dataset)
+        iou_types = ["segm"]
+        coco_evaluator = CocoEvaluator(coco, iou_types)
+        mAP_list = []
+        train_loss = []
+        learning_rate = []
+
+        for i, train_data in enumerate(self.train_dataloader):
+            image, target, logit = train_data
+
+            image = Variable(image).to(self.device)
+
+            model_time = time.time()
+            _, pred = self.model(image)
+
+            pred, target = reorginalize_target(pred, target)
+
+            outputs = [{k: v.to(cpu_device) for k, v in t.items()} for t in outputs]
+            model_time = time.time() - model_time
+
+            res = {target["image_id"].item(): output for target, output in zip(target, outputs)}
+
+            evaluator_time = time.time()
+            coco_evaluator.update(res)
+            evaluator_time = time.time() - evaluator_time
+
+        coco_evaluator.synchronize_between_processes()
+
+        # accumulate predictions from all images
+        coco_evaluator.accumulate()
+        coco_evaluator.summarize()
+        torch.set_num_threads(n_threads)
+
+        print_txt = coco_evaluator.coco_eval[iou_types[0]].stats
+        coco_mAP = print_txt[0]
+        voc_mAP = print_txt[1]
+        if isinstance(mAP_list, list):
+            mAP_list.append(voc_mAP)
+
+        if len(train_loss) != 0 and len(learning_rate) != 0:
+            from plot_curve import plot_loss_and_lr
+            plot_loss_and_lr(train_loss, learning_rate)
+
+        # plot mAP curve
+        if len(mAP_list) != 0:
+            from plot_curve import plot_map
+            plot_map(mAP_list)
 
 
 if __name__ == '__main__':

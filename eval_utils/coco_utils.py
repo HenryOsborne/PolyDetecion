@@ -1,5 +1,6 @@
 import json
 from collections import defaultdict
+from config.yolov3 import cfg
 
 import numpy as np
 import copy
@@ -350,8 +351,18 @@ def create_coco_dataset(dataset):
     return coco_ds
 
 
-def reorginalize_target(pred, target):
-    return pred, target
+def reorginalize_target(detections, logit):
+    output = []
+    for detection in detections:
+        anns = detection.chunk(detection.shape[0], dim=0)
+        assert len(anns) > 0
+        for ann in anns:
+            mask = ann[0, :8].tolist()
+            scores = ann[0, 8].item()
+            labels = torch.argmax(ann[0, 9:]).item()
+            img_id = logit[0]['image_id'].item()
+            output.append({'image_id': img_id, 'category_id': labels, 'masks': [mask], 'score': scores})
+    return output
 #################################################################
 # end of straight copy from pycocotools, just removing the prints
 #################################################################

@@ -36,14 +36,26 @@ class NewDataset(Dataset):
 
         # ndarray(num of instance,8)
         bboxes = self.get_bbox(anno_info)
-        label = self.get_label(anno_info)
-        label = torch.unsqueeze(torch.tensor(label), 1)
+        labels = self.get_label(anno_info)
+        labels = torch.unsqueeze(torch.tensor(labels, dtype=torch.int64), 1)
         image = self.get_image(image_info['file_name'])
+        iscrowd = [0]
+
+        # convert everything into a torch.Tensor
+        boxes = torch.as_tensor(bboxes, dtype=torch.float32)
+        iscrowd = torch.as_tensor(iscrowd, dtype=torch.int64)
+        image_id = torch.tensor([idx])
+
+        target = {}
+        target["segmentation"] = bboxes
+        target["labels"] = labels
+        target["image_id"] = image_id
+        target["iscrowd"] = iscrowd
 
         if self.if_show:  # 可视化查看数据增强的正确性
             self.show_image_and_bboxes(np.copy(image), np.copy(bboxes))
 
-        return image, bboxes, label
+        return image, bboxes, labels, target
 
     def get_class_names(self):
         class_names = []
@@ -143,7 +155,8 @@ class NewDataset(Dataset):
         image = [i[0] for i in batch]
         bboxes = [i[1] for i in batch]
         label = [i[2] for i in batch]
-        assert len(image) == len(bboxes) == len(label)
+        target = tuple([i[3] for i in batch])
+        assert len(image) == len(bboxes) == len(label) == len(target)
 
         input_size = random.choice(self.input_sizes)  # 每次随机选取输入图像的大小
         self.output_size = [input_size // stride for stride in self.strides]  # yolo输出大小
@@ -161,7 +174,7 @@ class NewDataset(Dataset):
         image = torch.stack(image)
         image = image.type(torch.FloatTensor)
 
-        return tuple((image, logit))
+        return tuple((image, logit, target))
 
 
 if __name__ == '__main__':
