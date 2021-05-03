@@ -16,7 +16,7 @@ cfg.tensorboard_path = "./log/"  # 存放tensorboard的log输出
 cfg.checkpoint_save_path = "./checkpoint/"  # 存放训练参数
 cfg.num_classes = 2  # 有多少类
 cfg.strides = [8, 16, 32]  # 输入与三个分支的大小比例
-cfg.device = "cpu"  # cpu
+cfg.device = "cuda:0"  # cpu
 cfg.num_worker = 4
 cfg.anchors = [[[1.25, 1.625], [2.0, 3.75], [4.125, 2.875]],
                [[1.875, 3.8125], [3.875, 2.8125], [3.6875, 7.4375]],

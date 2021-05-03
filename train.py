@@ -11,7 +11,6 @@ import math
 import time
 import cv2
 import os
-from tqdm import tqdm
 from tensorboardX import SummaryWriter
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
@@ -22,9 +21,6 @@ from utils.scheduler import adjust_lr_by_wave
 from load_data import NewDataset
 from torch.utils.data import DataLoader
 from utils.nms import non_max_suppression
-from plot_curve import plot_loss_and_lr
-from plot_curve import plot_map
-
 
 class _Trainer(object):
     def __init__(self):
@@ -38,7 +34,7 @@ class _Trainer(object):
 
         self.val_dataset = NewDataset(train_set=False)
         self.val_dataloader = DataLoader(self.val_dataset, batch_size=1, shuffle=True,
-                                         num_workers=cfg.num_worker,
+                                         num_workers=0,
                                          collate_fn=self.val_dataset.collate_fn)
 
         self.len_train_dataset = len(self.train_dataset)
@@ -163,7 +159,7 @@ class _Trainer(object):
         iou_types = 'segm'
         anns = []
 
-        for val_data in tqdm(self.val_dataloader):
+        for val_data in self.val_dataloader:
             image, target, logit = val_data
             image = image.to(self.device)
             image_size = image.shape[3]  # image.shape[2]==image.shape[3]
@@ -173,6 +169,9 @@ class _Trainer(object):
             # TODO:当前只支持batch_size=1
             pred = pred.unsqueeze(0)
             pred = pred[pred[:, :, 8] > cfg.conf_thresh]
+            if pred.shape[0] == 0:
+                print('no instance found!!!')
+                return
             detections = non_max_suppression(pred.unsqueeze(0), cls_thres=cfg.cls_thresh, nms_thres=cfg.conf_thresh)
 
             anns.extend(self.reorginalize_target(detections, logit, image_size))
@@ -201,12 +200,4 @@ if __name__ == '__main__':
     trainer = _Trainer()
     for epoch_index in range(cfg.max_epoch):
         trainer.train_one_epoch(epoch_index, train_loss=train_loss, train_lr=learning_rate)
-        trainer.eval(mAP_list=val_mAP)
-
-    # plot loss and lr curve
-    if len(train_loss) != 0 and len(learning_rate) != 0:
-        plot_loss_and_lr(train_loss, learning_rate)
-
-    # plot mAP curve
-    if len(val_mAP) != 0:
-        plot_map(val_mAP)
+    trainer.eval(mAP_list=val_mAP)
