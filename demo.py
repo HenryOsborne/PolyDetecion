@@ -22,7 +22,7 @@ parser.add_argument('-plot_flag', type=bool, default=True)
 parser.add_argument('-txt_out', type=bool, default=True)
 
 parser.add_argument('-cfg', type=str, default='cfg/yolov3.cfg', help='cfg file path')
-parser.add_argument('-weights_path', type=str, default='checkpoint/20.pth', help='weight file path')
+parser.add_argument('-weights_path', type=str, default='checkpoint/180.pt', help='weight file path')
 parser.add_argument('-class_path', type=str, default='data/data.names', help='path to class label file')
 parser.add_argument('-conf_thres', type=float, default=0.5, help='object confidence threshold')
 parser.add_argument('-nms_thres', type=float, default=0.2, help='iou threshold for non-maximum suppression')
@@ -175,8 +175,8 @@ def detect(opt):
             bbox_colors = random.sample(color_list, len(unique_classes))
 
             # write results to .txt file
-            results_img_path = os.path.join(opt.output_folder, path.split('/')[-1])
-            results_txt_path = results_img_path.replace('png', 'txt')
+            results_img_path = os.path.join(opt.output_folder, os.path.basename(path))
+            results_txt_path = os.path.join(opt.output_folder, os.path.basename(path).split('.')[0] + '.txt')
             if os.path.isfile(results_txt_path):
                 os.remove(results_txt_path)
 
