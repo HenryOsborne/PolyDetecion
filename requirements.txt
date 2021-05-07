@@ -4,3 +4,4 @@ numpy
 easydict
 cv2
 pycocotools
+tensorboardX

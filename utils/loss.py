@@ -1,9 +1,3 @@
-# Editor       : pycharm
-# File name    : utils/loss.py
-# Author       : huangxinyu
-# Created date : 2020-11-15
-# Description  : 计算训练loss
-
 import torch
 import torch.nn as nn
 from config.yolov3 import cfg
