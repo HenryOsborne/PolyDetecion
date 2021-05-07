@@ -172,7 +172,7 @@ class _Trainer(object):
             checkpoint = {'epoch': epoch_index,
                           'model': self.model.state_dict(),
                           'optimizer': self.optimizer.state_dict()}
-            torch.save(self.model.state_dict(), cfg.checkpoint_save_path + str(epoch_index + 1) + '.pth')
+            torch.save(self.model.state_dict(), cfg.checkpoint_save_path + str(epoch_index + 1) + '_v5.pth')
 
     @torch.no_grad()
     def eval(self, mAP_list=None):

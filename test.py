@@ -27,40 +27,22 @@ from eval_utils.coco_utils import CocoEvaluator
 from eval_utils.coco_utils import create_coco_dataset
 
 
-class MyEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, bytes):
-            return str(obj, encoding='utf-8')
-        return json.JSONEncoder.default(self, obj)
-
-
 class trainer(object):
     def __init__(self):
         self.device = torch.device(cfg.device)
-        self.max_epoch = cfg.max_epoch
-
-        self.train_dataset = NewDataset(train_set=True)
-        self.train_dataloader = DataLoader(self.train_dataset, batch_size=cfg.batch_size, shuffle=True,
-                                           num_workers=cfg.num_worker,
-                                           collate_fn=self.train_dataset.collate_fn)
 
         self.val_dataset = NewDataset(train_set=False)
         self.val_dataloader = DataLoader(self.val_dataset, batch_size=1, shuffle=True,
                                          num_workers=cfg.num_worker,
                                          collate_fn=self.val_dataset.collate_fn)
 
-        self.len_train_dataset = len(self.train_dataset)
+        self.len_train_dataset = len(self.val_dataset)
 
         self.model = yolov3().to(self.device)
-
         weights_path = 'checkpoint/180.pt'
         checkpoint = torch.load(weights_path)
         self.model.load_state_dict(checkpoint)
 
-        self.optimizer = torch.optim.SGD(self.model.parameters(), lr=cfg.lr_start, momentum=cfg.momentum,
-                                         weight_decay=cfg.weight_decay)
-        self.scheduler = adjust_lr_by_wave(self.optimizer, self.max_epoch * self.len_train_dataset, cfg.lr_start,
-                                           cfg.lr_end, cfg.warmup)
         self.cocoGt = COCO(cfg.test_json)
 
     def reorginalize_mask(self, mask, logit, image_size):
@@ -108,18 +90,14 @@ class trainer(object):
         cpu_device = torch.device("cpu")
         self.model.eval()
 
-        # cocoGt = create_coco_dataset(self.val_dataset)
-
         for ann_idx in self.cocoGt.anns:
             ann = self.cocoGt.anns[ann_idx]
             ann['area'] = maskUtils.area(self.cocoGt.annToRLE(ann))
+
         iou_types = 'segm'
-        # coco_evaluator = CocoEvaluator(coco, iou_types)
-        train_loss = []
-        learning_rate = []
         anns = []
 
-        for i, val_data in tqdm(enumerate(self.val_dataloader)):
+        for val_data in self.val_dataloader:
             image, target, logit = val_data
 
             image = image.to(self.device)
@@ -143,23 +121,6 @@ class trainer(object):
         cocoEval.evaluate()
         cocoEval.accumulate()
         cocoEval.summarize()
-
-        print('1')
-
-        print_txt = cocoEval.stats
-        coco_mAP = print_txt[0]
-        voc_mAP = print_txt[1]
-        if isinstance(mAP_list, list):
-            mAP_list.append(voc_mAP)
-        #
-        # if len(train_loss) != 0 and len(learning_rate) != 0:
-        #     from plot_curve import plot_loss_and_lr
-        #     plot_loss_and_lr(train_loss, learning_rate)
-        #
-        # # plot mAP curve
-        # if len(mAP_list) != 0:
-        #     from plot_curve import plot_map
-        #     plot_map(mAP_list)
 
 
 if __name__ == '__main__':

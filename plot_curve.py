@@ -32,7 +32,7 @@ def plot_loss_and_lr(train_loss, learning_rate):
 def plot_map(mAP):
     try:
         x = list(range(len(mAP)))
-        plt.plot(x, mAP, label='mAp')
+        plt.plot(x, mAP, label='mAP')
         plt.xlabel('epoch')
         plt.ylabel('mAP')
         plt.title('Eval mAP')
