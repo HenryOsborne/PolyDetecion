@@ -1,14 +1,12 @@
 import torch
-from models.yolov3 import yolov3
 from config.yolov3 import cfg
 import math
 import time
-import cv2
-import os
 from tensorboardX import SummaryWriter
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 from pycocotools import mask as maskUtils
+from torch.optim.lr_scheduler import LambdaLR
 
 from utils.build_model import build_model
 from utils.loss import build_loss
@@ -20,6 +18,7 @@ from utils.nms import non_max_suppression
 from plot_curve import plot_map
 from plot_curve import plot_loss_and_lr
 from plot_curve import ap_per_category
+from utils.general import one_cycle
 
 
 class _Trainer(object):
@@ -47,8 +46,14 @@ class _Trainer(object):
 
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr=cfg.lr_start, momentum=cfg.momentum,
                                          weight_decay=cfg.weight_decay)
-        self.scheduler = adjust_lr_by_wave(self.optimizer, self.max_epoch * self.len_train_dataset, cfg.lr_start,
-                                           cfg.lr_end, cfg.warmup)
+
+        if cfg.linear_lr:
+            lf = lambda x: (1 - x / (cfg.max_epoch - 1)) * (1.0 - 0.2) + 0.2  # linear
+        else:  # hyp['lrf']
+            lf = one_cycle(1, 0.2, cfg.max_epoch)  # cosine 1->hyp['lrf']
+        self.scheduler = LambdaLR(self.optimizer, lr_lambda=lf)
+        # self.scheduler = adjust_lr_by_wave(self.optimizer, self.max_epoch * self.len_train_dataset, cfg.lr_start,
+        #                                    cfg.lr_end, cfg.warmup)
         # self.scheduler = adjust_lr_by_loss(self.optimizer,cfg.lr_start,cfg.warmup,self.train_dataloader.num_batches)
         self.writer = SummaryWriter(cfg.tensorboard_path)
         self.iter = 0
@@ -74,8 +79,8 @@ class _Trainer(object):
         self.model.train()
         for self.iter, train_data in enumerate(self.train_dataloader):
             start_time = time.time()
-            self.scheduler.step(epoch_index,
-                                self.len_train_dataset * epoch_index + self.iter / cfg.batch_size)  # 调整学习率
+            # self.scheduler.step(epoch_index,
+            #                     self.len_train_dataset * epoch_index + self.iter / cfg.batch_size)  # 调整学习率
             # self.scheduler.step(self.len_train_dataset * epoch_index + self.iter + 1,mean_loss[0])
             image, target, _ = train_data
             image = image.to(self.device)
@@ -88,6 +93,7 @@ class _Trainer(object):
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
+            self.scheduler.step()
 
             end_time = time.time()
             time_per_iter = end_time - start_time  # 每次迭代所花时间

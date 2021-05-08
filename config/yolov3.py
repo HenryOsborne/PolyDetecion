@@ -41,6 +41,7 @@ cfg.weight_decay = 0.0005  # 权重衰减正则项防止过拟合
 cfg.iou_thresh = 0.225  # 计算loss时的iou thresh
 cfg.focal_gamma = 2  # 计算conf loss的focal loss的gamma参数
 cfg.focal_alpha = 0.5  # 计算conf loss的focal loss的alpha参数
+cfg.linear_lr = False
 
 # test
 cfg.test_input_size = 416  # 输入大小
