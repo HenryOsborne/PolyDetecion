@@ -1,9 +1,3 @@
-# Editor       : pycharm
-# File name    : utils/decode.py
-# Author       : huangxinyu
-# Created date : 2020-11-10
-# Description  : 对yolov3的输出进行解码
-
 import torch
 from config.yolov3 import cfg
 

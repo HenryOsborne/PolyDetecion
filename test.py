@@ -5,6 +5,7 @@ import argparse
 import random
 import shutil
 
+from utils.post_process import reorginalize_target
 from models.yolov3 import yolov3
 from config.yolov3 import cfg
 from utils.nms import non_max_suppression
@@ -13,20 +14,8 @@ from torch.utils.data import DataLoader
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 from pycocotools import mask as maskUtils
-
-parser = argparse.ArgumentParser()
-parser.add_argument('-image_folder', type=str, default='./data/images', help='path to images')
-parser.add_argument('-output_folder', type=str, default='result_1', help='path to outputs')
-parser.add_argument('-plot_flag', type=bool, default=True)
-parser.add_argument('-txt_out', type=bool, default=True)
-parser.add_argument('-cfg', type=str, default='cfg/yolov3.cfg', help='cfg file path')
-parser.add_argument('-weights_path', type=str, default='checkpoint/180.pt', help='weight file path')
-parser.add_argument('-class_path', type=str, default='data/data.names', help='path to class label file')
-parser.add_argument('-conf_thres', type=float, default=0.5, help='object confidence threshold')
-parser.add_argument('-nms_thres', type=float, default=0.2, help='iou threshold for non-maximum suppression')
-parser.add_argument('-batch_size', type=int, default=1, help='size of the batches')
-parser.add_argument('-img_size', type=int, default=608, help='size of each image dimension')
-opt = parser.parse_args()
+from plot_curve import ap_per_category
+from plot_curve import draw_pr
 
 
 class Test(object):
@@ -48,43 +37,6 @@ class Test(object):
         self.model.load_state_dict(checkpoint)
 
         self.cocoGt = COCO(cfg.test_json)
-
-    def reorginalize_mask(self, mask, logit, image_size):
-        img_id = logit[0]['image_id'].item()
-        img_ann = self.cocoGt.loadImgs(ids=img_id)[0]  # 一次只读取一张图片，返回是一个列表，取列表的第一个元素
-        img = cv2.imread(os.path.join(cfg.image_path, img_ann['file_name']))
-        pad_x = max(img.shape[0] - img.shape[1], 0) * (image_size / max(img.shape))
-        pad_y = max(img.shape[1] - img.shape[0], 0) * (image_size / max(img.shape))
-        # Image height and width after padding is removed
-        unpad_h = image_size - pad_y
-        unpad_w = image_size - pad_x
-
-        P1_x, P1_y, P2_x, P2_y, P3_x, P3_y, P4_x, P4_y = mask
-        P1_y = max(round(((P1_y - pad_y // 2) / unpad_h) * img.shape[0]), 0)
-        P1_x = max(round(((P1_x - pad_x // 2) / unpad_w) * img.shape[1]), 0)
-        P2_y = max(round(((P2_y - pad_y // 2) / unpad_h) * img.shape[0]), 0)
-        P2_x = max(round(((P2_x - pad_x // 2) / unpad_w) * img.shape[1]), 0)
-        P3_y = max(round(((P3_y - pad_y // 2) / unpad_h) * img.shape[0]), 0)
-        P3_x = max(round(((P3_x - pad_x // 2) / unpad_w) * img.shape[1]), 0)
-        P4_y = max(round(((P4_y - pad_y // 2) / unpad_h) * img.shape[0]), 0)
-        P4_x = max(round(((P4_x - pad_x // 2) / unpad_w) * img.shape[1]), 0)
-
-        new_mask = [P1_x, P1_y, P2_x, P2_y, P3_x, P3_y, P4_x, P4_y]
-        return new_mask
-
-    def reorginalize_target(self, detections, logit, image_size):
-        output = []
-        for detection in detections:
-            anns = detection.chunk(detection.shape[0], dim=0)
-            assert len(anns) > 0
-            for ann in anns:
-                mask = ann[0, :8].tolist()
-                mask = self.reorginalize_mask(mask, logit, image_size)
-                scores = ann[0, 8].item()
-                labels = torch.argmax(ann[0, 9:]).item()
-                img_id = logit[0]['image_id'].item()
-                output.append({'image_id': img_id, 'category_id': labels, 'segmentation': [mask], 'score': scores})
-        return output
 
     def plot_one_box(self, x, img, color=None, label=None, line_thickness=None):  # Plots one bounding box on image img
         tl = line_thickness or round(0.001 * max(img.shape[0:2])) + 1  # line thickness
@@ -146,7 +98,7 @@ class Test(object):
             pred = pred[pred[:, :, 8] > cfg.conf_thresh]
             detections = non_max_suppression(pred.unsqueeze(0), cls_thres=cfg.cls_thresh, nms_thres=cfg.conf_thresh)
 
-            new_ann = self.reorginalize_target(detections, logit, image_size)
+            new_ann = reorginalize_target(detections, logit, image_size, self.cocoGt)
             self.drow_box(new_ann)
             anns.extend(new_ann)
 
@@ -160,8 +112,24 @@ class Test(object):
         cocoEval.accumulate()
         cocoEval.summarize()
 
+        ap_per_category(self.cocoGt, cocoEval, cfg.max_epoch)
+        draw_pr(self.cocoGt, cocoEval)
+
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-image_folder', type=str, default='./data/images', help='path to images')
+    parser.add_argument('-output_folder', type=str, default='result', help='path to outputs')
+    parser.add_argument('-plot_flag', type=bool, default=True)
+    parser.add_argument('-txt_out', type=bool, default=True)
+    parser.add_argument('-cfg', type=str, default='cfg/yolov3.cfg', help='cfg file path')
+    parser.add_argument('-weights_path', type=str, default='checkpoint/180.pt', help='weight file path')
+    parser.add_argument('-class_path', type=str, default='data/data.names', help='path to class label file')
+    parser.add_argument('-conf_thres', type=float, default=0.5, help='object confidence threshold')
+    parser.add_argument('-nms_thres', type=float, default=0.2, help='iou threshold for non-maximum suppression')
+    parser.add_argument('-batch_size', type=int, default=1, help='size of the batches')
+    parser.add_argument('-img_size', type=int, default=608, help='size of each image dimension')
+    opt = parser.parse_args()
     if os.path.isdir(opt.output_folder):
         shutil.rmtree(opt.output_folder)
     os.makedirs(opt.output_folder)

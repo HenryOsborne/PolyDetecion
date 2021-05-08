@@ -8,8 +8,10 @@ from easydict import EasyDict
 cfg = EasyDict()
 
 # custom
+cfg.model = 'yolo_v5'  # 'yolo_v3' or 'yolo_v5'
 cfg.trainval_json = 'data/trainval.json'
 cfg.test_json = 'data/test.json'
+cfg.output_files_path = 'output'
 cfg.image_path = "data/images/"  # 存放图像的path
 cfg.mean_and_val = "./data/mean_and_val.txt"  # 数据集均值和方差
 cfg.tensorboard_path = "./log/"  # 存放tensorboard的log输出

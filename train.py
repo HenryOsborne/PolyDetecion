@@ -10,13 +10,16 @@ from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 from pycocotools import mask as maskUtils
 
+from utils.build_model import build_model
 from utils.loss import build_loss
+from utils.post_process import reorginalize_target
 from utils.scheduler import adjust_lr_by_wave
 from load_data import NewDataset
 from torch.utils.data import DataLoader
 from utils.nms import non_max_suppression
 from plot_curve import plot_map
 from plot_curve import plot_loss_and_lr
+from plot_curve import ap_per_category
 
 
 class _Trainer(object):
@@ -35,13 +38,12 @@ class _Trainer(object):
         self.val_dataloader = DataLoader(self.val_dataset,
                                          batch_size=1,
                                          shuffle=True,
-                                         num_workers=0,
+                                         num_workers=cfg.num_worker,
                                          collate_fn=self.val_dataset.collate_fn)
 
         self.len_train_dataset = len(self.train_dataset)
 
-        self.model = yolov3().to(self.device)
-        self.model.load_darknet_weights("./checkpoint/darknet53_448.weights")
+        self.model = build_model(cfg.model)
 
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr=cfg.lr_start, momentum=cfg.momentum,
                                          weight_decay=cfg.weight_decay)
@@ -66,43 +68,6 @@ class _Trainer(object):
         self.writer.add_scalar("conf loss", mean_loss[2], global_step=step)
         self.writer.add_scalar("cls loss", mean_loss[3], global_step=step)
         self.writer.add_scalar("learning rate", self.optimizer.param_groups[0]['lr'], global_step=step)
-
-    def reorginalize_mask(self, mask, logit, image_size):
-        img_id = logit[0]['image_id'].item()
-        img_ann = self.cocoGt.loadImgs(ids=img_id)[0]  # 一次只读取一张图片，返回是一个列表，取列表的第一个元素
-        img = cv2.imread(os.path.join(cfg.image_path, img_ann['file_name']))
-        pad_x = max(img.shape[0] - img.shape[1], 0) * (image_size / max(img.shape))
-        pad_y = max(img.shape[1] - img.shape[0], 0) * (image_size / max(img.shape))
-        # Image height and width after padding is removed
-        unpad_h = image_size - pad_y
-        unpad_w = image_size - pad_x
-
-        P1_x, P1_y, P2_x, P2_y, P3_x, P3_y, P4_x, P4_y = mask
-        P1_y = max(round(((P1_y - pad_y // 2) / unpad_h) * img.shape[0]), 0)
-        P1_x = max(round(((P1_x - pad_x // 2) / unpad_w) * img.shape[1]), 0)
-        P2_y = max(round(((P2_y - pad_y // 2) / unpad_h) * img.shape[0]), 0)
-        P2_x = max(round(((P2_x - pad_x // 2) / unpad_w) * img.shape[1]), 0)
-        P3_y = max(round(((P3_y - pad_y // 2) / unpad_h) * img.shape[0]), 0)
-        P3_x = max(round(((P3_x - pad_x // 2) / unpad_w) * img.shape[1]), 0)
-        P4_y = max(round(((P4_y - pad_y // 2) / unpad_h) * img.shape[0]), 0)
-        P4_x = max(round(((P4_x - pad_x // 2) / unpad_w) * img.shape[1]), 0)
-
-        new_mask = [P1_x, P1_y, P2_x, P2_y, P3_x, P3_y, P4_x, P4_y]
-        return new_mask
-
-    def reorginalize_target(self, detections, logit, image_size):
-        output = []
-        for detection in detections:
-            anns = detection.chunk(detection.shape[0], dim=0)
-            assert len(anns) > 0
-            for ann in anns:
-                mask = ann[0, :8].tolist()
-                mask = self.reorginalize_mask(mask, logit, image_size)
-                scores = ann[0, 8].item()
-                labels = torch.argmax(ann[0, 9:]).item()
-                img_id = logit[0]['image_id'].item()
-                output.append({'image_id': img_id, 'category_id': labels, 'segmentation': [mask], 'score': scores})
-        return output
 
     def train_one_epoch(self, epoch_index, train_loss=None, train_lr=None):
         mean_loss = [0, 0, 0, 0]
@@ -144,10 +109,11 @@ class _Trainer(object):
             checkpoint = {'epoch': epoch_index,
                           'model': self.model.state_dict(),
                           'optimizer': self.optimizer.state_dict()}
-            torch.save(self.model.state_dict(), cfg.checkpoint_save_path + str(epoch_index + 1) + '.pth')
+            torch.save(self.model.state_dict(),
+                       cfg.checkpoint_save_path + cfg.model + '_' + str(epoch_index + 1) + '.pth')
 
     @torch.no_grad()
-    def eval(self, mAP_list=None):
+    def eval(self, epoch_index, mAP_list=None):
         n_threads = torch.get_num_threads()
         # FIXME remove this and make paste_masks_in_image run on the GPU
         torch.set_num_threads(n_threads)
@@ -174,7 +140,7 @@ class _Trainer(object):
                 pass
             else:
                 detections = non_max_suppression(pred.unsqueeze(0), cls_thres=cfg.cls_thresh, nms_thres=cfg.conf_thresh)
-                anns.extend(self.reorginalize_target(detections, logit, image_size))
+                anns.extend(reorginalize_target(detections, logit, image_size, self.cocoGt))
 
         for ann in anns:
             ann['segmentation'] = self.cocoGt.annToRLE(ann)  # 将polygon形式的segmentation转换RLE形式
@@ -186,6 +152,7 @@ class _Trainer(object):
         cocoEval.accumulate()
         cocoEval.summarize()
 
+        ap_per_category(self.cocoGt, cocoEval, epoch_index)
         print_txt = cocoEval.stats
         coco_mAP = print_txt[0]
         voc_mAP = print_txt[1]
@@ -200,7 +167,7 @@ if __name__ == '__main__':
     trainer = _Trainer()
     for epoch_index in range(cfg.max_epoch):
         trainer.train_one_epoch(epoch_index, train_loss=train_loss, train_lr=learning_rate)
-        trainer.eval(mAP_list=val_mAP)
+        trainer.eval(epoch_index, mAP_list=val_mAP)
 
     # plot loss and lr curve
     if len(train_loss) != 0 and len(learning_rate) != 0:
