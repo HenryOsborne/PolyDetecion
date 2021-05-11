@@ -25,8 +25,6 @@ def fun(str_num):
     return float_num
 
 
-os.makedirs(output_path, exist_ok=True)
-
 for txt in txt_list:
     with open(txt, 'r') as f:
         f2 = open(osp.join(output_path, osp.basename(txt)), 'w')

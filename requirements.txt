@@ -2,6 +2,6 @@ shapely
 torch
 numpy
 easydict
-cv2
+opencv-python
 pycocotools
 tensorboardX

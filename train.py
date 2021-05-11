@@ -49,7 +49,7 @@ class _Trainer(object):
 
         if cfg.linear_lr:
             lf = lambda x: (1 - x / (cfg.max_epoch - 1)) * (1.0 - 0.2) + 0.2  # linear
-        else:  # hyp['lrf']
+        else:  # hyp['lrf']==0.2
             lf = one_cycle(1, 0.2, cfg.max_epoch)  # cosine 1->hyp['lrf']
         self.scheduler = LambdaLR(self.optimizer, lr_lambda=lf)
         # self.scheduler = adjust_lr_by_wave(self.optimizer, self.max_epoch * self.len_train_dataset, cfg.lr_start,
