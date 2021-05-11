@@ -16,6 +16,7 @@ from pycocotools.cocoeval import COCOeval
 from pycocotools import mask as maskUtils
 from plot_curve import ap_per_category
 from plot_curve import draw_pr
+from utils.build_model import build_model
 
 
 class Test(object):
@@ -31,7 +32,8 @@ class Test(object):
 
         self.len_train_dataset = len(self.val_dataset)
 
-        self.model = yolov3().to(self.device)
+        # self.model = yolov3().to(self.device)
+        self.model = build_model(opt.model)
         weights_path = self.opt.weights_path
         checkpoint = torch.load(weights_path)
         self.model.load_state_dict(checkpoint)
@@ -114,6 +116,11 @@ class Test(object):
 
         ap_per_category(self.cocoGt, cocoEval, cfg.max_epoch)
         draw_pr(self.cocoGt, cocoEval)
+        print_txt = cocoEval.stats
+        coco_mAP = print_txt[0]
+        voc_mAP = print_txt[1]
+        if isinstance(mAP_list, list):
+            mAP_list.append(voc_mAP)
 
 
 if __name__ == '__main__':
@@ -123,7 +130,8 @@ if __name__ == '__main__':
     parser.add_argument('-plot_flag', type=bool, default=True)
     parser.add_argument('-txt_out', type=bool, default=True)
     parser.add_argument('-cfg', type=str, default='cfg/yolov3.cfg', help='cfg file path')
-    parser.add_argument('-weights_path', type=str, default='checkpoint/180.pt', help='weight file path')
+    parser.add_argument('-weights_path', type=str, default='checkpoint/yolo_v5_100.pth', help='weight file path')
+    parser.add_argument('-model', type=str, default='yolo_v5')
     parser.add_argument('-conf_thres', type=float, default=0.5, help='object confidence threshold')
     parser.add_argument('-nms_thres', type=float, default=0.2, help='iou threshold for non-maximum suppression')
     parser.add_argument('-batch_size', type=int, default=1, help='size of the batches')
