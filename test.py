@@ -86,6 +86,7 @@ class Test(object):
 
         iou_types = 'segm'
         anns = []
+        mAP_list = []
 
         for val_data in self.val_dataloader:
             image, target, logit = val_data
